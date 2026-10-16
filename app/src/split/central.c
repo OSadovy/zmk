@@ -19,6 +19,10 @@
 #include <zmk/events/position_state_changed.h>
 #include <zmk/events/sensor_event.h>
 
+#if IS_ENABLED(CONFIG_ZMK_MIRROR)
+#include <zmk/mirror.h>
+#endif
+
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 const struct zmk_split_transport_central *active_transport;
@@ -44,6 +48,14 @@ int zmk_split_transport_central_peripheral_event_handler(
                                                           ev.data.key_position_event.position,
                                                       .state = ev.data.key_position_event.pressed,
                                                       .timestamp = k_uptime_get()};
+#if IS_ENABLED(CONFIG_ZMK_MIRROR)
+        // Mirror mode: the position this key acts as, or none.
+        int32_t mirrored = zmk_mirror_map_position(state_ev.position, state_ev.state);
+        if (mirrored < 0) {
+            return 0;
+        }
+        state_ev.position = mirrored;
+#endif
         return raise_zmk_position_state_changed(state_ev);
     }
 #if IS_ENABLED(CONFIG_ZMK_INPUT_SPLIT)

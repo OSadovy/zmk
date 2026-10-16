@@ -23,6 +23,10 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/event_manager.h>
 #include <zmk/events/position_state_changed.h>
 
+#if IS_ENABLED(CONFIG_ZMK_MIRROR)
+#include <zmk/mirror.h>
+#endif
+
 ZMK_EVENT_IMPL(zmk_physical_layout_selection_changed);
 
 #define DT_DRV_COMPAT zmk_physical_layout
@@ -211,6 +215,13 @@ static void zmk_physical_layouts_kscan_process_msgq(struct k_work *item) {
 
         LOG_DBG("Row: %d, col: %d, position: %d, pressed: %s", ev.row, ev.column, position,
                 (pressed ? "true" : "false"));
+#if IS_ENABLED(CONFIG_ZMK_MIRROR)
+        // Mirror mode: the position this key acts as, or none.
+        position = zmk_mirror_map_position(position, pressed);
+        if (position < 0) {
+            continue;
+        }
+#endif
         raise_zmk_position_state_changed(
             (struct zmk_position_state_changed){.source = ZMK_POSITION_STATE_CHANGE_SOURCE_LOCAL,
                                                 .state = pressed,
